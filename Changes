@@ -1,5 +1,9 @@
 Revision history for Perl extension Apache::AuthenCache.
 
+0.04  Thu Feb 01 15:00:00 2000
+	- Partial rewrite by Christian Gilmore to use IPC::Cache
+	- Christian also removed any logging of passwords (originally spotted by John Groenveld)
+
 0.03  Mon Aug 17 17:05:14 1998
 	- Added hook for Apache::Status (thanks to John Groenveld)
 
