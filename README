@@ -16,7 +16,7 @@ SYNOPSIS
 
      # Optional parameters
      PerlSetVar AuthenCache_cache_size     100 # Maximum number of entries in cache (no default)
-     PerlSetVar AuthenCache_cace_time      900 # Number of seconds cache is good for (no default)
+     PerlSetVar AuthenCache_cache_time      900 # Number of seconds cache is good for (no default)
      PerlSetVar AuthenCache_nopasswd       on  # Allows authentication with out a password (defaults to off)
      PerlSetVar AuthenCache_encrypted      off # Uses plaintext passwords (defaults to on)
      PerlSetVar AuthenCache_casesensitive  off # Allows for Windows-like case-insensitivity (defaults to on)

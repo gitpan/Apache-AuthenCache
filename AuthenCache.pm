@@ -7,12 +7,11 @@ use Tie::IxHash;
 
 use strict;
 
-$Apache::AuthenCache::VERSION = '0.01';
+$Apache::AuthenCache::VERSION = '0.02';
 
 # Globals
 
-my $Cache;
-my $Cache_time;
+my %Cache_hash; # For per-realm caches
 
 sub handler {
 
@@ -25,6 +24,7 @@ sub handler {
   my $casesensitive = $r->dir_config('AuthenCache_casesensitive') || 'on';
   my $cache_size = $r->dir_config('AuthenCache_cache_size');
   my $cache_time_limit = $r->dir_config('AuthenCache_cache_time');
+  my $auth_name = $r->auth_name;
 
   # Get response and password
   my($res, $passwd_sent) = $r->get_basic_auth_pw;
@@ -42,24 +42,24 @@ sub handler {
   } # End if
 
   # Delete the cache if it has expired
-  if ($cache_time_limit and time - $Cache_time >= $cache_time_limit) {
+  if ($cache_time_limit and time - $Cache_hash{$auth_name}->{'cache_time'} >= $cache_time_limit) {
     $r->warn("Authencache::handler: cache has expired; deleting cache");
-    undef $Cache;
+    undef $Cache_hash{$auth_name};
   } # End if
 
   # Create the cache if needed
-  unless (defined $Cache) {
+  unless (defined $Cache_hash{$auth_name}) {
     my $time = time;
-    $Cache = new Tie::IxHash;
-    $Cache_time = $time;
+    $Cache_hash{$auth_name}->{'cache'} = new Tie::IxHash;
+    $Cache_hash{$auth_name}->{'cache_time'} = $time;
     $r->warn("AuthenCache::handler: creating cache at $time");
   } # End if
 
   # Is the user in the cache
-  if ($Cache->EXISTS($user_sent)) {
+  if ($Cache_hash{$auth_name}->{'cache'}->EXISTS($user_sent)) {
     
     $r->warn("AuthenCache::handler: using cache for $user_sent");
-    my $passwd = $Cache->FETCH($user_sent); # Save the password
+    my $passwd = $Cache_hash{$auth_name}->{'cache'}->FETCH($user_sent); # Save the password
     $r->warn("AuthenCache::handler: password=$passwd  (cached)");
 
     # Allow no password
@@ -120,6 +120,7 @@ sub manage_cache {
   my $casesensitive = $r->dir_config('AuthenCache_casesensitive') || 'on';
   my $cache_size = $r->dir_config('AuthenCache_cache_size');
   my $cache_time_limit = $r->dir_config('AuthenCache_cache_time');
+  my $auth_name = $r->auth_name;
 
   # Do we want Windows-like case-insensitivity?
   if ($casesensitive eq 'off') {
@@ -135,10 +136,10 @@ sub manage_cache {
   } # End if
 
   # Add the user to the cache
-  $Cache->Push($user_sent => $passwd_sent); 
+  $Cache_hash{$auth_name}->{'cache'}->Push($user_sent => $passwd_sent); 
   $r->warn("AuthenCache::manage_cache: added $user_sent:$passwd_sent to the cache");
-  if (defined $cache_size and $Cache->Length > $cache_size) { # Remove oldest cache entry if over max cache size
-    my ($k, $v) = $Cache->Shift;
+  if (defined $cache_size and $Cache_hash{$auth_name}->{'cache'}->Length > $cache_size) { # Remove oldest cache entry if over max cache size
+    my ($k, $v) = $Cache_hash{$auth_name}->{'cache'}->Shift;
     $r->warn("AuthenCache::manage_cache: cache size reached. Dropped $k:$v");
   } # End if
 
@@ -171,7 +172,7 @@ Apache::AuthenCache - Authentication caching used in conjuction with a primary a
 
  # Optional parameters
  PerlSetVar AuthenCache_cache_size     100 # Maximum number of entries in cache (no default)
- PerlSetVar AuthenCache_cace_time      900 # Number of seconds cache is good for (no default)
+ PerlSetVar AuthenCache_cache_time      900 # Number of seconds cache is good for (no default)
  PerlSetVar AuthenCache_nopasswd       on  # Allows authentication with out a password (defaults to off)
  PerlSetVar AuthenCache_encrypted      off # Uses plaintext passwords (defaults to on)
  PerlSetVar AuthenCache_casesensitive  off # Allows for Windows-like case-insensitivity (defaults to on)
