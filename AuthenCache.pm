@@ -7,7 +7,7 @@ use Tie::IxHash;
 
 use strict;
 
-$Apache::AuthenCache::VERSION = '0.02';
+$Apache::AuthenCache::VERSION = '0.03';
 
 # Globals
 
@@ -146,6 +146,26 @@ sub manage_cache {
   return OK;
 
 } # End manage_cache()
+
+Apache::Status->menu_item
+  (
+   'AuthenCache' => 'AuthenCache Realms-Users',
+   sub {
+	 my($r, $q) = @_;
+	 my @s;
+	 push @s, qq(<TABLE BORDER=1 CELLPADDING=5>), 
+	          qq(<TR><TH>Realm</TH><TH>Seconds Cached</TH><TH>Users</TH></TR>);
+	 foreach my $realm (keys %Cache_hash) {
+	   push @s, qq(<TR VALIGN=TOP><TD>$realm</TD><TD ALIGN=CENTER>), 
+                (time - $Cache_hash{$realm}->{'cache_time'}),
+	            qq(</TD><TD>);
+	   foreach my $user ($Cache_hash{$realm}->{'cache'}->Keys) {push @s, qq($user<BR>)}
+	   push @s, qq(</TD></TR>);
+	 } # End foreach
+	 push @s, qq(</TABLE>);
+	 return \@s;
+   } # End sub
+  ) if ($INC{'Apache.pm'} && Apache->module('Apache::Status'));
 
 1;
 

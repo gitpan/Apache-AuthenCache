@@ -1,8 +1,11 @@
 Revision history for Perl extension Apache::AuthenCache.
 
+0.03  Mon Aug 17 17:05:14 1998
+	- Added hook for Apache::Status (thanks to John Groenveld)
+
 0.02  Fri Aug 14 15:35:22 1998
-	- Added %Cache_hash for perl-realm caching
-	- Fixed typo in documentation
+	- Added %Cache_hash for perl-realm caching (thanks to John Groenveld)
+	- Fixed typo in documentation (thanks to John Groenveld)
 
 0.01  Wed Jun 10 15:05:18 1998
 	- original version; created by h2xs 1.18
