@@ -1,0 +1,67 @@
+NAME
+    Apache::AuthenCache - Authentication caching used in conjuction
+    with a primary authentication module (Apache::AuthenDBI, etc.)
+
+SYNOPSIS
+     # In your httpd.conf
+     PerlModule Apache::AuthenCache
+
+     # In httpd.conf or .htaccess:
+     AuthName Name
+     AuthType Basic
+     PerlAuthenHandler Apache::AuthenCache <Primary Authentication Module> Apache::AuthenCache::manage_cache
+     <Limit GET>
+     require valid-user # Limited to valid-user or user
+     </Limit>
+
+     # Optional parameters
+     PerlSetVar AuthenCache_cache_size     100 # Maximum number of entries in cache (no default)
+     PerlSetVar AuthenCache_cace_time      900 # Number of seconds cache is good for (no default)
+     PerlSetVar AuthenCache_nopasswd       on  # Allows authentication with out a password (defaults to off)
+     PerlSetVar AuthenCache_encrypted      off # Uses plaintext passwords (defaults to on)
+     PerlSetVar AuthenCache_casesensitive  off # Allows for Windows-like case-insensitivity (defaults to on)
+
+DESCRIPTION
+    This module implements a caching mechanism in order to speed up
+    authentication and to reduce the usage of system resources. It
+    must be used in conjunction with a regular mod_perl
+    authentication module. (It was designed with AuthenDBI in mind.)
+    For mod_perl authentication modules see:
+
+     http://www.perl.com/CPAN-local/modules/by-module/Apache/apache-modlist.html
+
+    When an access controlled request is received
+    AuthenCache::handler looks up the username in the cache and
+    compares the cached password to the sent password. A new cache
+    is created for the first request or if the cache has expired. If
+    the passwords match the remaing Authen handlers are removed from
+    the stack and OK is returned. If the passwords don't match
+    DECLINED is returned and the next Authen handler is called.
+
+    After the primary authentication handler authenticates the user,
+    AuthenCache::manage_cache adds the new user to the cache and
+    removes the oldest user if AuthenCache_cache_size is set and the
+    size of the cache is greater than AuthenCache_cache_size.
+
+PREREQUISITES
+    mod_perl 1.11_01 is required. The following call-back hooks need
+    to be enabled when making mod_perl:
+
+      perl Makefile.PL PERL_AUTHEN=1 PERL_STACKED_HANDLERS=1 PERL_GET_SET_HANDLERS
+
+    Tie::IxHash is also required.
+
+TODO
+    * Make cache LRU
+SEE ALSO
+    the Apache manpage, the mod_perl manpage
+
+AUTHOR
+    Jason Bodnar <jcbodnar@mail.utexas.edu>
+
+COPYRIGHT
+    Copyright (C) 1998, Jason Bodnar
+
+    This module is free software; you can redistribute it and/or
+    modify it under the same terms as Perl itself.
+
