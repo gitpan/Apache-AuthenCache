@@ -1,0 +1,40 @@
+2003-06-23	Christian Gilmore <cag@us.ibm.com>
+
+	o  Changed expired password response to FORBIDDEN.
+	o  Made release 1.00.
+
+2001-08-16	Jason Bodnar <jason@shakabuku.org>
+	
+	o  Patch from Christian Gilmore fixing bug caused by 
+	   missing 'use Apache::Log' and removing check for
+	   mod_perl 1.26.
+	o  Added per-realm caching back in as implemented in 0.03 and 
+	   missed in the 0.04 rewrite. A different cache is created
+	   for each realm (AuthName) so users allowed access to one
+	   realm do not get access to other realms.
+	o  Made version 0.05.
+
+2001-02-01	Jason Bodnar <jason@shakabuku.org>
+
+	o  Partial rewrite by Christian Gilmore to use IPC::Cache.
+	o  Christian also removed any logging of passwords (originally
+	   spotted by John Groenveld).
+	o  Made version 0.04.
+
+1998-08-17	Jason Bodnar <jason@shakabuku.org>
+
+	o  Added hook for Apache::Status (thanks to John Groenveld).
+	o  Made version 0.03.
+	
+1998-08-14	Jason Bodnar <jason@shakabuku.org>
+
+	o  Added %Cache_hash for perl-realm caching (thanks to
+	   John Groenveld).
+	o  Fixed typo in documentation (thanks to John Groenveld).
+	o  Made version 0.03.
+
+1998-06-10	Jason Bodnar <jason@shakabuku.org>	
+
+	o  original version; created by h2xs 1.18.
+
+$Id: ChangeLog,v 1.1 2003/06/23 18:44:44 cgilmore Exp $
