@@ -3,7 +3,7 @@
 # Author          : Jason Bodnar, Christian Gilmore
 # Created On      : Long ago
 # Status          : Functional
-# 
+#
 # PURPOSE
 #    User Authentication Cache
 #
@@ -18,11 +18,12 @@ package Apache::AuthenCache;
 use strict;
 use mod_perl ();
 use Apache::Constants qw(OK AUTH_REQUIRED DECLINED DONE);
+use Apache::Log ();
 use IPC::Cache;
 
 
 # Global variables
-$Apache::AuthenCache::VERSION = '0.04';
+$Apache::AuthenCache::VERSION = '0.05';
 
 
 ###############################################################################
@@ -62,13 +63,14 @@ sub handler {
     $user_sent = lc($user_sent);
   }
 
-  # Create the cache if needed
-  my $cache = IPC::Cache->new({ namespace => 'AuthUsers' });
+  # Create or retreive the cache (if already created)
+	# Use the Realm name ($auth_name) for different caches for each realm
+  my $cache = IPC::Cache->new({ namespace => $auth_name });
   my $passwd = $cache->get($user_sent);
   # Is the user in the cache
   if ($passwd) {
     $r->log->debug("handler: using cached passwd for $user_sent");
- 
+
     # Allow no password
     if ($nopasswd eq 'on' and not length($passwd)) {
       $r->log->debug("handler: no password required; returning DONE");
@@ -76,7 +78,7 @@ sub handler {
       # no password
       return DONE;
     }
- 
+
     # If nopasswd is off, reject user
     unless (length($passwd_sent) and length($passwd)) {
       $r->log->debug("handler: user $user_sent: empty password(s) rejected" .
@@ -85,13 +87,13 @@ sub handler {
       # new password
       return DECLINED;
     }
- 
+
     # Is crypt is needed
     if ($encrypted eq 'on') {
       my $salt = substr($passwd, 0, 2);
       $passwd_sent = crypt($passwd_sent, $salt);
     }
- 
+
     unless ($passwd_sent eq $passwd) {
       $r->log->debug("AuthenCache::handler: user $user_sent: " . 
 		     "password mismatch" .  $r->uri);
@@ -99,9 +101,11 @@ sub handler {
       # new password
       return DECLINED;
     }
- 
+
     # Password matches so end stage
-    if ($mod_perl::VERSION > 1.25) {
+    # The required patch was not introduced in 1.26. It is no longer
+    # promised to be included in any timeframe. Commenting out.
+    # if ($mod_perl::VERSION > 1.25) {
       # I should be able to use the below lines and be done with it.
       # Since set_handlers() doesn't work properly until 1.26
       # (according to Doug MacEachern) I have to work around it by
@@ -109,17 +113,17 @@ sub handler {
       # in this phase. I get the willies about the security implications
       # in a general environment where you might be using someone else's
       # handlers upstream or downstream...
-      $r->log->debug("handler: user in cache and password matches; ",
-		     "returning OK and clearing authen handler stack");
-      $r->set_handlers(PerlAuthenHandler => undef);
-    } else {
-      $r->log->debug("handler: user in cache and password matches; ",
-		     "returning OK and setting notes");
-      $r->notes('AuthenCache' => 'hit');
-    }
+    $r->log->debug("handler: user in cache and password matches; ",
+		   "returning OK and clearing authen handler stack");
+    $r->set_handlers(PerlAuthenHandler => undef);
+    # } else {
+    #  $r->log->debug("handler: user in cache and password matches; ",
+    #		     "returning OK and setting notes");
+    #  $r->notes('AuthenCache' => 'hit');
+    #}
     return OK;
-  }
-  
+  } # End if()
+
   # User not in cache
   $r->log->debug("handler: user/group not in cache; returning DECLINED");
   return DECLINED;
@@ -142,16 +146,18 @@ sub manage_cache {
   my $user_sent = $r->connection->user;
   $r->log->debug("manage_cache: username=$user_sent");
 
-  unless ($mod_perl::VERSION > 1.25) {
-    # The below test is dubious. I'm putting it in as a hack around the 
+  # The required patch was not introduced in 1.26. It is no longer
+  # promised to be included in any timeframe. Commenting out.
+  # unless ($mod_perl::VERSION > 1.25) {
+    # The below test is dubious. I'm putting it in as a hack around the
     # problems with set_handlers not working quite right until 1.26 is
     # released (according to Doug MacEachern).
-    my $cache_result = $r->notes('AuthenCache');
-    if ($cache_result eq 'hit') {
-      $r->log->debug("manage_cache: upstream cache hit for username=",
-		     "$user_sent");
-      return OK;
-    }
+  my $cache_result = $r->notes('AuthenCache');
+  if ($cache_result eq 'hit') {
+    $r->log->debug("manage_cache: upstream cache hit for username=",
+		   "$user_sent");
+    return OK;
+  #  }
   }
 
   # Get configuration
@@ -175,7 +181,8 @@ sub manage_cache {
   }
 
   # Add the user to the cache
-  my $cache = IPC::Cache->new({ namespace => 'AuthUsers' });
+	# Use the Realm name to have different caches for each realm
+  my $cache = IPC::Cache->new({ namespace => $auth_name });
   $cache->set($user_sent, $passwd_sent, $cache_time_limit);
   $r->log->debug("manage_cache: added $user_sent to the cache");
 
@@ -227,10 +234,10 @@ modules see:
 http://www.cpan.org/modules/by-module/Apache/apache-modlist.html
 
 When a request that requires authorization is received,
-AuthenCache::handler looks up the REMOTE_USER in a shared-memory
+AuthenCache::handler looks up the REMOTE_USER in a perl-realm shared-memory
 cache (using IPC::Cache) and compares the cached password to the
-sent password. A new cache is created for the first request or if
-the cache has expired. If the passwords match, the handler
+sent password. A new cache is created for the first request in a realm or if
+the realm's cache has expired. If the passwords match, the handler
 returns OK and clears the downstream Authen handlers from the
 stack. Otherwise, it returns DECLINED and allows the next
 PerlAuthenHandler in the chain to be called.
